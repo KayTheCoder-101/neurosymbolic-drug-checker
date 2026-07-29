@@ -69,8 +69,11 @@ with onto:
     class BleedingRiskPatient(Patient):
         equivalent_to = [
             Patient
+            & (
+                (takesMedication.some(NSAID))
+                | (takesMedication.some(Antiplatelet))
+              )
             & (takesMedication.some(Anticoagulant))
-            & (takesMedication.some(NSAID))
         ]
 
     class QTProlongationRiskPatient(Patient):
@@ -86,18 +89,8 @@ with onto:
             & (takesMedication.some(Benzodiazepine))
         ]
 
-    class BleedingRiskPatient(Patient):
-        equivalent_to = [
-            Patient
-            & (
-                (takesMedication.some(NSAID))
-                | (takesMedication.some(Antiplatelet))
-              )
-            & (takesMedication.some(Anticoagulant))
-        ]
-
     class CYP3A4ToxicityRiskPatient(Patient):
-        pass  # note: NOT using equivalent_to here — see comment below
+        pass  # populated via SWRL rule below, not equivalent_to
 
     cyp3a4_rule = Imp()
     cyp3a4_rule.set_as_rule("""
@@ -106,10 +99,19 @@ with onto:
         -> CYP3A4ToxicityRiskPatient(?p)
     """)
 
+    class PregnantPatient(Patient): pass
+
+    class AbsoluteContraindicationInPregnancy(Drug): pass
+
+    class ForbiddenPregnancyRegimen(Thing):
+        equivalent_to = [
+            Nothing,
+            PregnantPatient
+            & (takesMedication.some(AbsoluteContraindicationInPregnancy))
+        ]
+
 onto.save(file="ontology/drugkr.owl", format="rdfxml")
 print("Ontology saved successfully.")
 print(f"Classes: {len(list(onto.classes()))}")
 print(f"Object properties: {len(list(onto.object_properties()))}")
 print(f"Data properties: {len(list(onto.data_properties()))}")
-
- 

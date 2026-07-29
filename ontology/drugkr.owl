@@ -180,21 +180,6 @@
     <owl:Class>
       <owl:intersectionOf rdf:parseType="Collection">
         <rdf:Description rdf:about="#Patient"/>
-        <owl:Restriction>
-          <owl:onProperty rdf:resource="#takesMedication"/>
-          <owl:someValuesFrom rdf:resource="#Anticoagulant"/>
-        </owl:Restriction>
-        <owl:Restriction>
-          <owl:onProperty rdf:resource="#takesMedication"/>
-          <owl:someValuesFrom rdf:resource="#NSAID"/>
-        </owl:Restriction>
-      </owl:intersectionOf>
-    </owl:Class>
-  </owl:equivalentClass>
-  <owl:equivalentClass>
-    <owl:Class>
-      <owl:intersectionOf rdf:parseType="Collection">
-        <rdf:Description rdf:about="#Patient"/>
         <owl:Class>
           <owl:unionOf rdf:parseType="Collection">
             <owl:Restriction>
@@ -253,6 +238,30 @@
 
 <owl:Class rdf:about="#CYP3A4ToxicityRiskPatient">
   <rdfs:subClassOf rdf:resource="#Patient"/>
+</owl:Class>
+
+<owl:Class rdf:about="#PregnantPatient">
+  <rdfs:subClassOf rdf:resource="#Patient"/>
+</owl:Class>
+
+<owl:Class rdf:about="#AbsoluteContraindicationInPregnancy">
+  <rdfs:subClassOf rdf:resource="#Drug"/>
+</owl:Class>
+
+<owl:Class rdf:about="#ForbiddenPregnancyRegimen">
+  <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <owl:equivalentClass>
+    <owl:Class>
+      <owl:intersectionOf rdf:parseType="Collection">
+        <rdf:Description rdf:about="#PregnantPatient"/>
+        <owl:Restriction>
+          <owl:onProperty rdf:resource="#takesMedication"/>
+          <owl:someValuesFrom rdf:resource="#AbsoluteContraindicationInPregnancy"/>
+        </owl:Restriction>
+      </owl:intersectionOf>
+    </owl:Class>
+  </owl:equivalentClass>
+  <owl:equivalentClass rdf:resource="http://www.w3.org/2002/07/owl#Nothing"/>
 </owl:Class>
 
 <swrl:Variable rdf:about="urn:swrl#p"/>
