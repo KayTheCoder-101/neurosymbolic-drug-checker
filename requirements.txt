@@ -1,0 +1,7 @@
+owlready2
+fastapi
+uvicorn[standard]
+pydantic
+anthropic
+python-dotenv
+pytest
