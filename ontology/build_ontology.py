@@ -1,7 +1,7 @@
 from owlready2 import *
+import os
 
 onto = get_ontology("http://example.org/drugkr.owl")
-
 with onto:
     class Drug(Thing): pass
     class Patient(Thing): pass
@@ -110,7 +110,8 @@ with onto:
             & (takesMedication.some(AbsoluteContraindicationInPregnancy))
         ]
 
-onto.save(file="ontology/drugkr.owl", format="rdfxml")
+script_dir = os.path.dirname(os.path.abspath(__file__))
+onto.save(file=os.path.join(script_dir, "drugkr.owl"), format="rdfxml")
 print("Ontology saved successfully.")
 print(f"Classes: {len(list(onto.classes()))}")
 print(f"Object properties: {len(list(onto.object_properties()))}")

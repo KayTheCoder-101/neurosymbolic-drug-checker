@@ -250,6 +250,7 @@
 
 <owl:Class rdf:about="#ForbiddenPregnancyRegimen">
   <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
+  <owl:equivalentClass rdf:resource="http://www.w3.org/2002/07/owl#Nothing"/>
   <owl:equivalentClass>
     <owl:Class>
       <owl:intersectionOf rdf:parseType="Collection">
@@ -261,8 +262,130 @@
       </owl:intersectionOf>
     </owl:Class>
   </owl:equivalentClass>
-  <owl:equivalentClass rdf:resource="http://www.w3.org/2002/07/owl#Nothing"/>
 </owl:Class>
+
+<owl:NamedIndividual rdf:about="#CYP3A4">
+  <rdf:type rdf:resource="#Enzyme"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Phenelzine">
+  <rdf:type rdf:resource="#MAOI"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Tranylcypromine">
+  <rdf:type rdf:resource="#MAOI"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Sertraline">
+  <rdf:type rdf:resource="#SSRI"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Fluoxetine">
+  <rdf:type rdf:resource="#SSRI"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Sumatriptan">
+  <rdf:type rdf:resource="#Triptan"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Tramadol">
+  <rdf:type rdf:resource="#Opioid"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Morphine">
+  <rdf:type rdf:resource="#Opioid"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Diazepam">
+  <rdf:type rdf:resource="#Benzodiazepine"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Clopidogrel">
+  <rdf:type rdf:resource="#Antiplatelet"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Ibuprofen">
+  <rdf:type rdf:resource="#NSAID"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Ketoconazole">
+  <rdf:type rdf:resource="#CYP3A4Inhibitor"/>
+  <inhibits rdf:resource="#CYP3A4"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Clarithromycin">
+  <rdf:type rdf:resource="#CYP3A4Inhibitor"/>
+  <inhibits rdf:resource="#CYP3A4"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Simvastatin">
+  <rdf:type rdf:resource="#CYP3A4Substrate"/>
+  <metabolizedBy rdf:resource="#CYP3A4"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Haloperidol">
+  <rdf:type rdf:resource="#QTProlongingAgent"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Pseudoephedrine">
+  <rdf:type rdf:resource="#Sympathomimetic"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Citalopram">
+  <rdf:type rdf:resource="#SSRI"/>
+  <rdf:type rdf:resource="#QTProlongingAgent"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Alprazolam">
+  <rdf:type rdf:resource="#Benzodiazepine"/>
+  <rdf:type rdf:resource="#CYP3A4Substrate"/>
+  <metabolizedBy rdf:resource="#CYP3A4"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Aspirin">
+  <rdf:type rdf:resource="#NSAID"/>
+  <rdf:type rdf:resource="#Antiplatelet"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Amiodarone">
+  <rdf:type rdf:resource="#QTProlongingAgent"/>
+  <rdf:type rdf:resource="#CYP3A4Inhibitor"/>
+  <inhibits rdf:resource="#CYP3A4"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#Warfarin">
+  <rdf:type rdf:resource="#Anticoagulant"/>
+  <rdf:type rdf:resource="#AbsoluteContraindicationInPregnancy"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#P1_SerotoninRisk">
+  <rdf:type rdf:resource="#Patient"/>
+  <takesMedication rdf:resource="#Phenelzine"/>
+  <takesMedication rdf:resource="#Sertraline"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#P2_CYP3A4Risk">
+  <rdf:type rdf:resource="#Patient"/>
+  <takesMedication rdf:resource="#Simvastatin"/>
+  <takesMedication rdf:resource="#Ketoconazole"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#P3_BleedingRisk">
+  <rdf:type rdf:resource="#Patient"/>
+  <takesMedication rdf:resource="#Aspirin"/>
+  <takesMedication rdf:resource="#Warfarin"/>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#P4_PregnancyContradiction">
+  <rdf:type rdf:resource="#PregnantPatient"/>
+  <takesMedication rdf:resource="#Warfarin"/>
+  <isPregnant rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</isPregnant>
+</owl:NamedIndividual>
+
+<owl:NamedIndividual rdf:about="#P5_Safe">
+  <rdf:type rdf:resource="#Patient"/>
+  <takesMedication rdf:resource="#Diazepam"/>
+</owl:NamedIndividual>
 
 <swrl:Variable rdf:about="urn:swrl#p"/>
 
