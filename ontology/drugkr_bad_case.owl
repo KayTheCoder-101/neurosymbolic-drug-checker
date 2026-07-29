@@ -384,6 +384,12 @@
   <takesMedication rdf:resource="#Diazepam"/>
 </owl:NamedIndividual>
 
+<owl:NamedIndividual rdf:about="#P4_PregnancyContradiction">
+  <rdf:type rdf:resource="#PregnantPatient"/>
+  <takesMedication rdf:resource="#Warfarin"/>
+  <isPregnant rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</isPregnant>
+</owl:NamedIndividual>
+
 <swrl:Variable rdf:about="urn:swrl#p"/>
 
 <swrl:Variable rdf:about="urn:swrl#d1"/>
