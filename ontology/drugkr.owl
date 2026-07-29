@@ -250,7 +250,6 @@
 
 <owl:Class rdf:about="#ForbiddenPregnancyRegimen">
   <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
-  <owl:equivalentClass rdf:resource="http://www.w3.org/2002/07/owl#Nothing"/>
   <owl:equivalentClass>
     <owl:Class>
       <owl:intersectionOf rdf:parseType="Collection">
@@ -262,6 +261,7 @@
       </owl:intersectionOf>
     </owl:Class>
   </owl:equivalentClass>
+  <owl:equivalentClass rdf:resource="http://www.w3.org/2002/07/owl#Nothing"/>
 </owl:Class>
 
 <owl:NamedIndividual rdf:about="#CYP3A4">

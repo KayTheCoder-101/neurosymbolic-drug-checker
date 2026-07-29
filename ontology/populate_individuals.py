@@ -62,9 +62,11 @@ with onto:
     P3 = bo.Patient("P3_BleedingRisk")
     P3.takesMedication = [Warfarin, Aspirin]
 
-    P4 = bo.PregnantPatient("P4_PregnancyContradiction")
-    P4.isPregnant = [True]
-    P4.takesMedication = [Warfarin]
+    # P4: DELIBERATELY DANGEROUS — pregnant + absolute contraindication
+    # Moved to ontology/populate_bad_case.py — run separately to demo inconsistency
+    # P4 = bo.PregnantPatient("P4_PregnancyContradiction")
+    # P4.isPregnant = [True]
+    # P4.takesMedication = [Warfarin]
 
     # P5: safe baseline patient — should NOT trigger any risk class
     P5 = bo.Patient("P5_Safe")
