@@ -96,10 +96,20 @@ with onto:
             & (takesMedication.some(Anticoagulant))
         ]
 
+    class CYP3A4ToxicityRiskPatient(Patient):
+        pass  # note: NOT using equivalent_to here — see comment below
+
+    cyp3a4_rule = Imp()
+    cyp3a4_rule.set_as_rule("""
+        Patient(?p), takesMedication(?p, ?d1), CYP3A4Inhibitor(?d1), inhibits(?d1, ?e),
+        takesMedication(?p, ?d2), CYP3A4Substrate(?d2), metabolizedBy(?d2, ?e)
+        -> CYP3A4ToxicityRiskPatient(?p)
+    """)
+
 onto.save(file="ontology/drugkr.owl", format="rdfxml")
 print("Ontology saved successfully.")
 print(f"Classes: {len(list(onto.classes()))}")
 print(f"Object properties: {len(list(onto.object_properties()))}")
 print(f"Data properties: {len(list(onto.data_properties()))}")
 
-    
+ 
