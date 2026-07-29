@@ -62,8 +62,6 @@ with onto:
     P3 = bo.Patient("P3_BleedingRisk")
     P3.takesMedication = [Warfarin, Aspirin]
 
-    # P4: DELIBERATELY DANGEROUS — pregnant + absolute contraindication
-    # this should make the whole ontology INCONSISTENT
     P4 = bo.PregnantPatient("P4_PregnancyContradiction")
     P4.isPregnant = [True]
     P4.takesMedication = [Warfarin]
