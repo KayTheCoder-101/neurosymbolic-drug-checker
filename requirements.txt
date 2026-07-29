@@ -2,6 +2,6 @@ owlready2
 fastapi
 uvicorn[standard]
 pydantic
-anthropic
+openai
 python-dotenv
 pytest
