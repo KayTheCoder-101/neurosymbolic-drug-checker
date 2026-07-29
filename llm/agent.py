@@ -9,10 +9,11 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ontology"))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "reasoning"))
 
-from nl_to_querey import translate_mock
+from nl_to_query import translate_mock
 from owlready2 import sync_reasoner
 import populate_individuals as pop
 from explain import explain_patient
+from nl_to_query import translate_llm
 
 _reasoner_has_run = False
 
@@ -26,7 +27,7 @@ def _ensure_reasoner_run():
 
 
 def handle_question(nl_question: str) -> str:
-    query = translate_mock(nl_question)
+    query = translate_llm(nl_question)
 
     if query["intent"] not in ("check_patient_risk", "explain_patient_risk"):
         return ("I can only answer questions about patient drug-interaction risk right now "
