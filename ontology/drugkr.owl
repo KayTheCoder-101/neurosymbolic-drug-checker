@@ -372,8 +372,8 @@
 
 <owl:NamedIndividual rdf:about="#P3_BleedingRisk">
   <rdf:type rdf:resource="#Patient"/>
-  <takesMedication rdf:resource="#Aspirin"/>
   <takesMedication rdf:resource="#Warfarin"/>
+  <takesMedication rdf:resource="#Aspirin"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#P5_Safe">
