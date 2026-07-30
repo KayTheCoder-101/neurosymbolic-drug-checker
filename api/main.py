@@ -8,21 +8,44 @@ import sys
 import os
 import logging
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "llm"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "reasoning"))
 
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 from agent import handle_question
+from reasoning_service import get_reasoning_service
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("drugkr_api")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting up: loading ontology and running initial reasoning pass...")
+    get_reasoning_service()  # triggers one-time load + reasoning at startup, not per-request
+    logger.info("Startup complete. Reasoning service is warm.")
+    yield
+
 
 app = FastAPI(
     title="Neurosymbolic Drug-Interaction Checker",
     description="LLM + OWL ontology hybrid reasoning system. All factual claims "
                 "are verified by a Description Logic reasoner (HermiT), not the LLM.",
     version="1.0.0",
+    lifespan=lifespan,
+)
+
+# Allow a frontend served from a different origin to call this API.
+# Tighten allow_origins to your actual deployed frontend URL before going live.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -34,6 +57,20 @@ class QuestionResponse(BaseModel):
     question: str
     raw_explanation: str | None
     polished_explanation: str
+    timestamp: str
+
+
+class RegimenRequest(BaseModel):
+    drugs: list[str] = Field(..., min_length=1, max_length=10,
+                              description="List of drug names, e.g. ['Phenelzine', 'Sertraline']")
+
+
+class RegimenResponse(BaseModel):
+    drugs: list[str]
+    consistent: bool
+    inferred_classes: list[str]
+    explanation: str | None
+    message: str | None = None
     timestamp: str
 
 
@@ -51,21 +88,53 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/drugs")
+def list_drugs():
+    service = get_reasoning_service()
+    return {"drugs": service.list_known_drugs()}
+
+
 @app.post("/ask", response_model=QuestionResponse)
 def ask(request: QuestionRequest):
     logger.info(f"Received question: {request.question}")
-
     result = handle_question(request.question)
-
     logger.info(f"Raw explanation: {result['raw']}")
     logger.info(f"Polished explanation: {result['polished']}")
-
     return QuestionResponse(
         question=request.question,
         raw_explanation=result["raw"],
         polished_explanation=result["polished"],
         timestamp=datetime.utcnow().isoformat(),
     )
+
+
+@app.post("/check-regimen", response_model=RegimenResponse)
+def check_regimen(request: RegimenRequest):
+    """
+    Directly check an arbitrary drug combination against the ontology —
+    no LLM involved in this path, pure DL reasoning. Intended for a UI
+    where the user picks drugs from a list rather than asking in NL.
+    """
+    logger.info(f"Checking custom regimen: {request.drugs}")
+    service = get_reasoning_service()
+    result = service.check_custom_regimen(request.drugs)
+
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result)
+
+    logger.info(f"Regimen result: consistent={result.get('consistent')}, "
+                f"classes={result.get('inferred_classes')}")
+
+    return RegimenResponse(
+        drugs=request.drugs,
+        consistent=result.get("consistent", True),
+        inferred_classes=result.get("inferred_classes", []),
+        explanation=result.get("explanation"),
+        message=result.get("message"),
+        timestamp=datetime.utcnow().isoformat(),
+    )
+
+
 class InconsistencyDemoResponse(BaseModel):
     consistent: bool
     message: str
@@ -75,16 +144,13 @@ class InconsistencyDemoResponse(BaseModel):
 @app.post("/demo/inconsistency", response_model=InconsistencyDemoResponse)
 def demo_inconsistency():
     """
-    Loads a deliberately dangerous scenario (a pregnant patient prescribed
-    an absolute pregnancy-contraindicated drug) and shows that the reasoner
-    detects it as logically impossible — not just 'risky', but inconsistent.
+    Fixed scripted scenario: pregnant patient + Warfarin (absolute
+    pregnancy contraindication) -> ontology becomes inconsistent.
     """
     import sys as _sys
     from owlready2 import sync_reasoner, OwlReadyInconsistentOntologyError, default_world
 
-    ontology_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "ontology"
-    )
+    ontology_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ontology")
     if ontology_path not in _sys.path:
         _sys.path.insert(0, ontology_path)
 
@@ -117,4 +183,8 @@ def demo_inconsistency():
         )
 
     logger.info(f"Demo result: consistent={result.consistent}")
+
+    # IMPORTANT: this scripted demo loads a SEPARATE module state than the
+    # singleton ReasoningService uses for /check-regimen and /ask. Calling
+    # this endpoint does not affect or reset the warm service. See note below.
     return result
