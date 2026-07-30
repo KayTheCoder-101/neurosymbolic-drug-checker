@@ -371,14 +371,14 @@
 
 <owl:NamedIndividual rdf:about="#P2_CYP3A4Risk">
   <rdf:type rdf:resource="#Patient"/>
-  <takesMedication rdf:resource="#Ketoconazole"/>
   <takesMedication rdf:resource="#Simvastatin"/>
+  <takesMedication rdf:resource="#Ketoconazole"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#P3_BleedingRisk">
   <rdf:type rdf:resource="#Patient"/>
-  <takesMedication rdf:resource="#Aspirin"/>
   <takesMedication rdf:resource="#Warfarin"/>
+  <takesMedication rdf:resource="#Aspirin"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#P5_Safe">

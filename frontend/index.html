@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neurosymbolic Drug-Interaction Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #10131A;
+    --panel: #1B1F29;
+    --panel-2: #20242F;
+    --hairline: #2A2F3B;
+    --text: #ECE8DE;
+    --muted: #9098A8;
+    --accent: #45C7B8;
+    --accent-dim: #2E8E83;
+    --sev-contraindicated: #E2554B;
+    --sev-major: #E2A03F;
+    --sev-moderate: #D8C468;
+    --sev-none: #5FBE84;
+    --sev-unknown: #6B7280;
+    --serif: 'Newsreader', serif;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ink); color: var(--text); font-family: var(--sans); line-height: 1.5; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 48px 24px 96px; }
+  header.hero { max-width: 760px; margin-bottom: 56px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sev-unknown); display: inline-block; }
+  .status-dot.online { background: var(--sev-none); box-shadow: 0 0 8px var(--sev-none); }
+  .status-dot.offline { background: var(--sev-contraindicated); }
+  h1.thesis { font-family: var(--serif); font-weight: 600; font-size: 42px; line-height: 1.15; margin: 0 0 20px; letter-spacing: -0.01em; }
+  h1.thesis em { font-style: italic; color: var(--accent); }
+  .sub { font-size: 16px; color: var(--muted); max-width: 620px; }
+  .layout { display: grid; grid-template-columns: 1fr 420px; gap: 32px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--hairline); border-radius: 10px; padding: 24px; margin-bottom: 24px; }
+  .panel h2 { font-family: var(--serif); font-weight: 600; font-size: 20px; margin: 0 0 6px; }
+  .panel .desc { font-size: 13.5px; color: var(--muted); margin: 0 0 18px; }
+  .panel .step { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 4px; display: block; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .chip { font-family: var(--mono); font-size: 12.5px; padding: 7px 12px; border-radius: 20px; border: 1px solid var(--hairline); background: var(--panel-2); color: var(--muted); cursor: pointer; transition: all 0.15s ease; user-select: none; }
+  .chip:hover { border-color: var(--accent-dim); color: var(--text); }
+  .chip.selected { background: var(--accent); color: var(--ink); border-color: var(--accent); font-weight: 500; }
+  button.action { font-family: var(--sans); font-weight: 600; font-size: 14px; padding: 11px 20px; border-radius: 7px; border: none; background: var(--accent); color: var(--ink); cursor: pointer; transition: background 0.15s ease; }
+  button.action:hover { background: #5CDAC9; }
+  button.action:disabled { background: var(--hairline); color: var(--muted); cursor: not-allowed; }
+  button.action.ghost { background: transparent; border: 1px solid var(--accent-dim); color: var(--accent); }
+  button.action.ghost:hover { background: rgba(69, 199, 184, 0.08); }
+  input[type="text"] { width: 100%; background: var(--panel-2); border: 1px solid var(--hairline); border-radius: 7px; padding: 12px 14px; color: var(--text); font-family: var(--sans); font-size: 14px; margin-bottom: 14px; }
+  input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  .example-qs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .example-q { font-size: 12px; color: var(--muted); background: var(--panel-2); border: 1px solid var(--hairline); padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+  .example-q:hover { color: var(--text); border-color: var(--accent-dim); }
+  .demo-panel { border-color: var(--sev-contraindicated); }
+  .console { position: sticky; top: 24px; background: var(--panel); border: 1px solid var(--hairline); border-radius: 10px; overflow: hidden; }
+  .console-header { padding: 16px 20px; border-bottom: 1px solid var(--hairline); display: flex; align-items: center; justify-content: space-between; }
+  .console-header .title { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .stamp { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; padding: 5px 10px; border-radius: 5px; text-transform: uppercase; border: 1px solid currentColor; }
+  .stamp.Contraindicated { color: var(--sev-contraindicated); }
+  .stamp.Major { color: var(--sev-major); }
+  .stamp.Moderate { color: var(--sev-moderate); }
+  .stamp.None, .stamp.Minor { color: var(--sev-none); }
+  .stamp.Unknown { color: var(--sev-unknown); }
+  .console-body { padding: 20px; min-height: 220px; }
+  .console-empty { color: var(--muted); font-size: 13.5px; font-style: italic; padding: 20px 0; }
+  .trace-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; display: block; }
+  .trace-block { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--text); background: var(--ink); border: 1px solid var(--hairline); border-radius: 6px; padding: 14px; margin-bottom: 18px; white-space: pre-wrap; word-break: break-word; }
+  .polished-block { font-size: 14px; line-height: 1.55; color: var(--text); margin-bottom: 12px; }
+  .toggle-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .toggle-btn { font-family: var(--mono); font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--hairline); background: transparent; color: var(--muted); cursor: pointer; }
+  .toggle-btn.active { color: var(--ink); background: var(--accent); border-color: var(--accent); }
+  .meta-row { font-family: var(--mono); font-size: 11px; color: var(--muted); padding-top: 14px; border-top: 1px solid var(--hairline); }
+  .loading { color: var(--muted); font-size: 13.5px; display: flex; align-items: center; gap: 8px; }
+  .spinner { width: 12px; height: 12px; border: 2px solid var(--hairline); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-text { color: var(--sev-contraindicated); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">checking API…</span>
+    </div>
+    <h1 class="thesis">Every answer here is <em>proven</em>, not generated.</h1>
+    <p class="sub">
+      A Description Logic reasoner (HermiT) verifies every drug-interaction claim against
+      a formal OWL ontology. The language model only translates questions and rephrases
+      results — it never asserts a medical fact on its own. Try a real combination below.
+    </p>
+  </header>
+
+  <div class="layout">
+    <div class="left">
+
+      <div class="panel" id="regimenPanel">
+        <span class="step">01 — BUILD A REGIMEN</span>
+        <h2>Check any drug combination</h2>
+        <p class="desc">Pick two or more drugs. The reasoner will classify the regimen against the ontology's risk axioms in real time.</p>
+        <div class="chips" id="drugChips">
+          <span class="console-empty">loading known drugs…</span>
+        </div>
+        <button class="action" id="checkRegimenBtn" disabled>Check regimen</button>
+      </div>
+
+      <div class="panel" id="askPanel">
+        <span class="step">02 — ASK IN PLAIN ENGLISH</span>
+        <h2>Ask about a demo patient</h2>
+        <p class="desc">Five pre-loaded patients (P1–P5) demonstrate each reasoning pattern. Ask a natural-language question about any of them.</p>
+        <input type="text" id="questionInput" placeholder="e.g. Why is P2 flagged?">
+        <div class="example-qs">
+          <span class="example-q" data-q="Is P1 at risk?">Is P1 at risk?</span>
+          <span class="example-q" data-q="Why is P2 flagged?">Why is P2 flagged?</span>
+          <span class="example-q" data-q="Check P3 for bleeding risk">Check P3 for bleeding risk</span>
+          <span class="example-q" data-q="Is P5 safe?">Is P5 safe?</span>
+        </div>
+        <button class="action" id="askBtn">Ask</button>
+      </div>
+
+      <div class="panel demo-panel" id="demoPanel">
+        <span class="step" style="color: var(--sev-contraindicated);">03 — PROVE IMPOSSIBILITY</span>
+        <h2>Run the inconsistency demo</h2>
+        <p class="desc">
+          A pregnant patient prescribed Warfarin (an absolute pregnancy contraindication) doesn't just get
+          flagged as risky — the reasoner proves no valid model can satisfy both facts at once. The ontology
+          becomes logically inconsistent.
+        </p>
+        <button class="action ghost" id="demoBtn">Run inconsistency demo</button>
+      </div>
+
+    </div>
+
+    <div class="console">
+      <div class="console-header">
+        <span class="title">Proof Console</span>
+        <span id="consoleStamp"></span>
+      </div>
+      <div class="console-body" id="consoleBody">
+        <p class="console-empty">Run a check to see the reasoner's output here — including the exact axioms behind every claim.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = "http://localhost:8000";
+
+let lastResult = null;
+
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const drugChips = document.getElementById('drugChips');
+const checkRegimenBtn = document.getElementById('checkRegimenBtn');
+const questionInput = document.getElementById('questionInput');
+const askBtn = document.getElementById('askBtn');
+const demoBtn = document.getElementById('demoBtn');
+const consoleBody = document.getElementById('consoleBody');
+const consoleStamp = document.getElementById('consoleStamp');
+
+let selectedDrugs = new Set();
+
+async function checkHealth() {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    if (res.ok) {
+      statusDot.classList.add('online');
+      statusText.textContent = 'API online';
+    } else throw new Error();
+  } catch {
+    statusDot.classList.add('offline');
+    statusText.textContent = 'API unreachable — is the backend running?';
+  }
+}
+
+async function loadDrugs() {
+  try {
+    const res = await fetch(`${API_BASE}/drugs`);
+    const data = await res.json();
+    drugChips.innerHTML = '';
+    data.drugs.forEach(drug => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = drug;
+      chip.onclick = () => toggleDrug(drug, chip);
+      drugChips.appendChild(chip);
+    });
+  } catch {
+    drugChips.innerHTML = '<span class="error-text">Could not load drug list. Is the API running?</span>';
+  }
+}
+
+function toggleDrug(drug, chipEl) {
+  if (selectedDrugs.has(drug)) {
+    selectedDrugs.delete(drug);
+    chipEl.classList.remove('selected');
+  } else {
+    selectedDrugs.add(drug);
+    chipEl.classList.add('selected');
+  }
+  checkRegimenBtn.disabled = selectedDrugs.size < 1;
+}
+
+function renderLoading() {
+  consoleStamp.innerHTML = '';
+  consoleBody.innerHTML = '<div class="loading"><span class="spinner"></span> Reasoning over the ontology…</div>';
+}
+
+function renderError(msg) {
+  consoleStamp.innerHTML = '';
+  consoleBody.innerHTML = '<p class="error-text">' + msg + '</p>';
+}
+
+function renderResult(r) {
+  lastResult = r;
+  const stampLabel = r.consistent === false ? 'Contraindicated' : (r.severity || 'Unknown');
+  consoleStamp.innerHTML = '<span class="stamp ' + stampLabel + '">' + stampLabel + '</span>';
+
+  let html = '';
+
+  if (r.consistent === false) {
+    html += '<div class="trace-block" style="border-color: var(--sev-contraindicated); color: var(--sev-contraindicated);">⚠ ONTOLOGY INCONSISTENT\n\n' + r.message + '</div>';
+  } else if (!r.raw && !r.polished) {
+    html += '<p class="console-empty">No explanation available.</p>';
+  } else {
+    html += '<div class="toggle-row">' +
+      '<button class="toggle-btn active" id="toggleRaw">Ontology trace</button>' +
+      '<button class="toggle-btn" id="togglePolished">Plain language</button>' +
+      '</div>' +
+      '<div id="traceContent">' +
+      '<span class="trace-label">Raw axiom-grounded explanation</span>' +
+      '<div class="trace-block">' + (r.raw || '(no risk classes inferred)') + '</div>' +
+      '</div>';
+  }
+
+  html += '<div class="meta-row">timestamp: ' + new Date().toISOString() + '</div>';
+  consoleBody.innerHTML = html;
+
+  if (r.raw || r.polished) {
+    document.getElementById('toggleRaw').addEventListener('click', function() { switchView(true); });
+    document.getElementById('togglePolished').addEventListener('click', function() { switchView(false); });
+  }
+}
+
+function switchView(showRaw) {
+  document.getElementById('toggleRaw').classList.toggle('active', showRaw);
+  document.getElementById('togglePolished').classList.toggle('active', !showRaw);
+  const content = document.getElementById('traceContent');
+  if (showRaw) {
+    content.innerHTML = '<span class="trace-label">Raw axiom-grounded explanation</span><div class="trace-block">' + (lastResult.raw || '(no risk classes inferred)') + '</div>';
+  } else {
+    content.innerHTML = '<span class="trace-label">Plain-language rephrasing</span><div class="polished-block">' + (lastResult.polished || '(no explanation available)') + '</div>';
+  }
+}
+
+checkRegimenBtn.onclick = async function() {
+  if (selectedDrugs.size < 1) return;
+  renderLoading();
+  try {
+    const res = await fetch(API_BASE + '/check-regimen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ drugs: Array.from(selectedDrugs) }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      renderError((data.detail && data.detail.error) || 'Could not check that combination.');
+      return;
+    }
+    renderResult({
+      raw: data.explanation,
+      polished: data.explanation,
+      severity: data.severity,
+      consistent: data.consistent,
+      message: data.message,
+    });
+  } catch (e) {
+    renderError('Request failed. Is the API running and reachable?');
+  }
+};
+
+askBtn.onclick = async function() {
+  const question = questionInput.value.trim();
+  if (!question) return;
+  renderLoading();
+  try {
+    const res = await fetch(API_BASE + '/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: question }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      renderError('Could not process that question.');
+      return;
+    }
+    renderResult({
+      raw: data.raw_explanation,
+      polished: data.polished_explanation,
+      severity: data.severity,
+      consistent: true,
+    });
+  } catch (e) {
+    renderError('Request failed. Is the API running and reachable?');
+  }
+};
+
+demoBtn.onclick = async function() {
+  renderLoading();
+  try {
+    const res = await fetch(API_BASE + '/demo/inconsistency', { method: 'POST' });
+    const data = await res.json();
+    renderResult({
+      raw: null,
+      polished: null,
+      severity: 'Contraindicated',
+      consistent: data.consistent,
+      message: data.message,
+    });
+  } catch (e) {
+    renderError('Request failed. Is the API running and reachable?');
+  }
+};
+
+document.querySelectorAll('.example-q').forEach(function(el) {
+  el.onclick = function() {
+    questionInput.value = el.dataset.q;
+    askBtn.click();
+  };
+});
+
+checkHealth();
+loadDrugs();
+</script>
+
+</body>
+</html>

@@ -64,6 +64,11 @@
   <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#decimal"/>
 </owl:DatatypeProperty>
 
+<owl:DatatypeProperty rdf:about="#hasSeverityLabel">
+  <rdfs:domain rdf:resource="#Drug"/>
+  <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+</owl:DatatypeProperty>
+
 <owl:Class rdf:about="#Drug">
   <rdfs:subClassOf rdf:resource="http://www.w3.org/2002/07/owl#Thing"/>
 </owl:Class>
@@ -362,18 +367,21 @@
   <rdf:type rdf:resource="#Patient"/>
   <takesMedication rdf:resource="#Sertraline"/>
   <takesMedication rdf:resource="#Phenelzine"/>
+  <rdf:type rdf:resource="#SerotoninSyndromeRiskPatient"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#P2_CYP3A4Risk">
   <rdf:type rdf:resource="#Patient"/>
   <takesMedication rdf:resource="#Ketoconazole"/>
   <takesMedication rdf:resource="#Simvastatin"/>
+  <rdf:type rdf:resource="#CYP3A4ToxicityRiskPatient"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#P3_BleedingRisk">
   <rdf:type rdf:resource="#Patient"/>
   <takesMedication rdf:resource="#Aspirin"/>
   <takesMedication rdf:resource="#Warfarin"/>
+  <rdf:type rdf:resource="#BleedingRiskPatient"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#P5_Safe">

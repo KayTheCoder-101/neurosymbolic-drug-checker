@@ -1,29 +1,16 @@
 """
-Orchestration layer: routes a translated query to the right ontology/reasoning
-action, or decides to respond conversationally without touching the ontology.
+Orchestration layer: routes a translated NL query to the reasoning service,
+or decides to respond conversationally without touching the ontology.
 """
 
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ontology"))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "reasoning"))
 
-from owlready2 import sync_reasoner
-import populate_individuals as pop
-from explain import explain_patient
 from nl_to_query import translate_llm
 from explain_to_nl import polish_explanation
-
-_reasoner_has_run = False
-
-
-def _ensure_reasoner_run():
-    global _reasoner_has_run
-    if not _reasoner_has_run:
-        with pop.onto:
-            sync_reasoner(infer_property_values=True)
-        _reasoner_has_run = True
+from reasoning_service import get_reasoning_service
 
 
 def handle_question(nl_question: str) -> dict:
@@ -37,36 +24,43 @@ def handle_question(nl_question: str) -> dict:
             "severity": "Unknown",
         }
 
-    if query["intent"] not in ("check_patient_risk", "explain_patient_risk"):
+    if query["intent"] not in ("check_risk", "explain_risk"):
         return {
             "raw": None,
-            "polished": ("I can only answer questions about patient drug-interaction risk right now "
-                         "— try asking something like 'Is P1 at risk?' or 'Why is P2 flagged?'"),
+            "polished": ("I can only answer questions about interactions between known drugs "
+                         "right now — try asking something like 'Is Warfarin risky with Aspirin?'"),
             "severity": "Unknown",
         }
 
-    if query["patient_id"] is None:
+    drug_names = query["drug_names"]
+
+    if len(drug_names) < 1:
         return {
             "raw": None,
-            "polished": ("I couldn't identify which patient you're asking about. "
-                         "Please refer to a patient by ID (e.g. P1, P2, P3)."),
+            "polished": ("I couldn't identify a known drug in that question. Try naming a "
+                         "specific drug, e.g. 'Is Ketoconazole safe with Simvastatin?'"),
             "severity": "Unknown",
         }
 
-    _ensure_reasoner_run()
+    service = get_reasoning_service()
+    result = service.check_custom_regimen(drug_names)
 
-    patient = getattr(pop, query["patient_id"].split("_")[0], None)
-    if patient is None:
+    if "error" in result:
         return {
             "raw": None,
-            "polished": f"I don't have a record for patient {query['patient_id']}.",
+            "polished": result["error"],
             "severity": "Unknown",
         }
 
-    explain_result = explain_patient(patient)
-    raw = explain_result["explanation"]
-    severity = explain_result["severity"]
+    if result.get("consistent") is False:
+        return {
+            "raw": result.get("message"),
+            "polished": result.get("message"),
+            "severity": "Contraindicated",
+        }
 
+    raw = result["explanation"]
+    severity = result["severity"]
     polish_result = polish_explanation(raw)
 
     return {
@@ -78,11 +72,11 @@ def handle_question(nl_question: str) -> dict:
 
 if __name__ == "__main__":
     test_questions = [
-        "Is P1 at risk?",
-        "Why is P2_CYP3A4Risk flagged?",
-        "Check P3 for bleeding risk",
-        "Is P5 safe?",
+        "Is Warfarin and Aspirin risky together?",
+        "Why is Ketoconazole with Simvastatin dangerous?",
+        "Is Diazepam safe on its own?",
         "What's the weather today?",
+        "Tell me about Xanax and alcohol",
     ]
     for q in test_questions:
         result = handle_question(q)

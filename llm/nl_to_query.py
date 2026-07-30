@@ -1,37 +1,44 @@
 """
 NL -> structured query translation.
-Stage A: mock translator (rule-based/keyword matching) — no API calls.
-Stage B (later): replace `translate_mock` calls with real OpenAI calls,
-keeping the same output shape so nothing downstream changes.
+Extracts intent + a list of known drug names mentioned in the question —
+no longer tied to fixed demo patient IDs.
 """
 
-import re
 import os
-import re
 import json
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-KNOWN_PATIENTS = ["P1_SerotoninRisk", "P2_CYP3A4Risk", "P3_BleedingRisk", "P5_Safe"]
 
-from openai import OpenAIError
+KNOWN_DRUGS = [
+    "Alprazolam", "Amiodarone", "Aspirin", "Citalopram", "Clarithromycin",
+    "Clopidogrel", "Diazepam", "Fluoxetine", "Haloperidol", "Ibuprofen",
+    "Ketoconazole", "Morphine", "Phenelzine", "Pseudoephedrine", "Sertraline",
+    "Simvastatin", "Sumatriptan", "Tramadol", "Tranylcypromine", "Warfarin",
+]
+
 
 def translate_llm(nl_question: str) -> dict:
-    system_prompt = f"""You translate natural-language questions about patient drug-interaction
+    system_prompt = f"""You translate natural-language questions about drug-interaction
 risk into a structured query. Respond in JSON format only.
 
 You do NOT answer the medical question yourself — you only extract structure.
-Known patient IDs: {", ".join(KNOWN_PATIENTS)}.
+
+Known drugs: {", ".join(KNOWN_DRUGS)}.
+
+Identify which of the known drugs (if any) are mentioned in the question, using
+their exact spelling from the list above. Also classify intent.
 
 Respond ONLY with JSON in this exact shape:
-{{"intent": "check_patient_risk" | "explain_patient_risk" | "unknown",
-  "patient_id": one of the known patient IDs or null}}
+{{"intent": "check_risk" | "explain_risk" | "unknown",
+  "drug_names": ["ExactDrugName1", "ExactDrugName2", ...]}}
 
-Use "explain_patient_risk" when the user asks why/how something was flagged.
-Use "check_patient_risk" for general risk/safety checks.
-Use "unknown" if the question is unrelated to patient drug risk."""
+Use "explain_risk" when the user asks why/how something is risky.
+Use "check_risk" for general risk/safety questions.
+Use "unknown" if the question doesn't mention any known drug or isn't about drug risk.
+If fewer than one known drug is mentioned, drug_names should be an empty list."""
 
     try:
         response = client.chat.completions.create(
@@ -46,46 +53,23 @@ Use "unknown" if the question is unrelated to patient drug risk."""
         parsed = json.loads(response.choices[0].message.content)
         return {
             "intent": parsed.get("intent", "unknown"),
-            "patient_id": parsed.get("patient_id"),
+            "drug_names": parsed.get("drug_names", []),
             "raw_question": nl_question,
         }
     except (OpenAIError, json.JSONDecodeError) as e:
         return {
             "intent": "llm_error",
-            "patient_id": None,
+            "drug_names": [],
             "raw_question": nl_question,
             "error": str(e),
         }
 
 
-def translate_mock(nl_question: str) -> dict:
-    question_lower = nl_question.lower()
-
-    patient_id = None
-    for pid in KNOWN_PATIENTS:
-        if pid.lower() in question_lower or pid.split("_")[0].lower() in question_lower:
-            patient_id = pid
-            break
-
-    if "why" in question_lower or "explain" in question_lower:
-        intent = "explain_patient_risk"
-    elif "safe" in question_lower or "risk" in question_lower or "check" in question_lower:
-        intent = "check_patient_risk"
-    else:
-        intent = "unknown"
-
-    return {
-        "intent": intent,
-        "patient_id": patient_id,
-        "raw_question": nl_question,
-    }
-
 if __name__ == "__main__":
     test_questions = [
-        "Is P1 at risk?",
-        "Why is P2_CYP3A4Risk flagged?",
-        "Check P3 for bleeding risk",
-        "Is P5 safe?",
+        "Is Warfarin and Aspirin risky together?",
+        "Why is Ketoconazole with Simvastatin dangerous?",
+        "Is Diazepam safe on its own?",
         "What's the weather today?",
     ]
     for q in test_questions:
