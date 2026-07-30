@@ -26,6 +26,11 @@ STRICT RULES:
   changes the certainty of the original claim.
 - Do not add medical advice, dosing suggestions, or recommendations of any kind
   — the input is a diagnostic explanation, not a treatment plan.
+- Do not replace precise technical terms with vaguer synonyms — e.g. keep "axiom",
+  "rule", "SWRL", and specific class names exactly as given. Do not substitute
+  words like "guidelines", "standards", or "protocols" for "axioms"/"rules",
+  since those imply a different (external, clinical-authority) source than
+  what's actually true here (formal logic definitions).
 - Keep it to 1-3 sentences.
 - If the input says no risk was found, just say so plainly — do not imply safety
   guarantees beyond what's stated.

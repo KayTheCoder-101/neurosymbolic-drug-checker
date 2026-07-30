@@ -26,25 +26,34 @@ def _ensure_reasoner_run():
         _reasoner_has_run = True
 
 
-def handle_question(nl_question: str) -> str:
+from explain_to_nl import polish_explanation
+
+def handle_question(nl_question: str) -> dict:
     query = translate_llm(nl_question)
 
     if query["intent"] not in ("check_patient_risk", "explain_patient_risk"):
-        return ("I can only answer questions about patient drug-interaction risk right now "
-                "— try asking something like 'Is P1 at risk?' or 'Why is P2 flagged?'")
+        return {
+            "raw": None,
+            "polished": ("I can only answer questions about patient drug-interaction risk right now "
+                         "— try asking something like 'Is P1 at risk?' or 'Why is P2 flagged?'")
+        }
 
     if query["patient_id"] is None:
-        return ("I couldn't identify which patient you're asking about. "
-                "Please refer to a patient by ID (e.g. P1, P2, P3).")
+        return {
+            "raw": None,
+            "polished": ("I couldn't identify which patient you're asking about. "
+                         "Please refer to a patient by ID (e.g. P1, P2, P3).")
+        }
 
     _ensure_reasoner_run()
 
     patient = getattr(pop, query["patient_id"].split("_")[0], None)
     if patient is None:
-        return f"I don't have a record for patient {query['patient_id']}."
+        return {"raw": None, "polished": f"I don't have a record for patient {query['patient_id']}."}
 
-    return explain_patient(patient)
-
+    raw = explain_patient(patient)
+    result = polish_explanation(raw)
+    return result
 
 if __name__ == "__main__":
     test_questions = [
@@ -55,6 +64,8 @@ if __name__ == "__main__":
         "What's the weather today?",
     ]
     for q in test_questions:
+        result = handle_question(q)
         print(f"Q: {q}")
-        print(f"A: {handle_question(q)}")
+        print(f"RAW:      {result['raw']}")
+        print(f"POLISHED: {result['polished']}")
         print()
