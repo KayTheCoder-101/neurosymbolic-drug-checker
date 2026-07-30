@@ -9,6 +9,9 @@ import os
 import logging
 from datetime import datetime
 from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "llm"))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "reasoning"))
@@ -17,6 +20,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from agent import handle_question
+from fastapi import FastAPI, HTTPException, Request
 from reasoning_service import get_reasoning_service
 
 logging.basicConfig(level=logging.INFO)
@@ -38,7 +42,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
-
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Allow a frontend served from a different origin to call this API.
 # Tighten allow_origins to your actual deployed frontend URL before going live.
 app.add_middleware(
@@ -95,13 +101,14 @@ def list_drugs():
 
 
 @app.post("/ask", response_model=QuestionResponse)
-def ask(request: QuestionRequest):
-    logger.info(f"Received question: {request.question}")
-    result = handle_question(request.question)
+@limiter.limit("10/minute")
+def ask(request: Request, body: QuestionRequest):
+    logger.info(f"Received question: {body.question}")
+    result = handle_question(body.question)
     logger.info(f"Raw explanation: {result['raw']}")
     logger.info(f"Polished explanation: {result['polished']}")
     return QuestionResponse(
-        question=request.question,
+        question=body.question,
         raw_explanation=result["raw"],
         polished_explanation=result["polished"],
         timestamp=datetime.utcnow().isoformat(),
@@ -109,15 +116,11 @@ def ask(request: QuestionRequest):
 
 
 @app.post("/check-regimen", response_model=RegimenResponse)
-def check_regimen(request: RegimenRequest):
-    """
-    Directly check an arbitrary drug combination against the ontology —
-    no LLM involved in this path, pure DL reasoning. Intended for a UI
-    where the user picks drugs from a list rather than asking in NL.
-    """
-    logger.info(f"Checking custom regimen: {request.drugs}")
+@limiter.limit("15/minute")
+def check_regimen(request: Request, body: RegimenRequest):
+    logger.info(f"Checking custom regimen: {body.drugs}")
     service = get_reasoning_service()
-    result = service.check_custom_regimen(request.drugs)
+    result = service.check_custom_regimen(body.drugs)
 
     if "error" in result:
         raise HTTPException(status_code=400, detail=result)
@@ -126,14 +129,13 @@ def check_regimen(request: RegimenRequest):
                 f"classes={result.get('inferred_classes')}")
 
     return RegimenResponse(
-        drugs=request.drugs,
+        drugs=body.drugs,
         consistent=result.get("consistent", True),
         inferred_classes=result.get("inferred_classes", []),
         explanation=result.get("explanation"),
         message=result.get("message"),
         timestamp=datetime.utcnow().isoformat(),
     )
-
 
 class InconsistencyDemoResponse(BaseModel):
     consistent: bool
