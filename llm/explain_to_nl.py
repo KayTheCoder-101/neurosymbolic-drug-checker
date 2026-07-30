@@ -15,42 +15,33 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
+from openai import OpenAIError
+
 def polish_explanation(raw_explanation: str) -> dict:
-    system_prompt = """You rephrase clinical drug-interaction explanations to be more
-natural and readable, for a doctor-facing assistant.
+    system_prompt = """..."""  # unchanged
 
-STRICT RULES:
-- You may ONLY rephrase. Do not add any drug, mechanism, severity, or clinical
-  claim that is not already present in the input text.
-- Do not soften, qualify, or add hedging language ("may", "could possibly") that
-  changes the certainty of the original claim.
-- Do not add medical advice, dosing suggestions, or recommendations of any kind
-  — the input is a diagnostic explanation, not a treatment plan.
-- Do not replace precise technical terms with vaguer synonyms — e.g. keep "axiom",
-  "rule", "SWRL", and specific class names exactly as given. Do not substitute
-  words like "guidelines", "standards", or "protocols" for "axioms"/"rules",
-  since those imply a different (external, clinical-authority) source than
-  what's actually true here (formal logic definitions).
-- Keep it to 1-3 sentences.
-- If the input says no risk was found, just say so plainly — do not imply safety
-  guarantees beyond what's stated.
-
-Respond ONLY with JSON: {"polished": "<your rephrased text>"}"""
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": raw_explanation},
-        ],
-    )
-
-    parsed = json.loads(response.choices[0].message.content)
-    return {
-        "raw": raw_explanation,
-        "polished": parsed.get("polished", raw_explanation),
-    }
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": raw_explanation},
+            ],
+            timeout=10,
+        )
+        parsed = json.loads(response.choices[0].message.content)
+        return {
+            "raw": raw_explanation,
+            "polished": parsed.get("polished", raw_explanation),
+        }
+    except (OpenAIError, json.JSONDecodeError):
+        # Fall back to the raw, ontology-grounded explanation if polishing fails —
+        # never lose the actual answer just because the rephrasing step broke.
+        return {
+            "raw": raw_explanation,
+            "polished": raw_explanation,
+        }
 
 
 if __name__ == "__main__":

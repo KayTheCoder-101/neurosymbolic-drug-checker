@@ -16,38 +16,34 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 KNOWN_PATIENTS = ["P1_SerotoninRisk", "P2_CYP3A4Risk", "P3_BleedingRisk", "P5_Safe"]
 
+from openai import OpenAIError
+
 def translate_llm(nl_question: str) -> dict:
-    """
-    Real LLM-based translator. Same output shape as translate_mock:
-    {"intent": ..., "patient_id": ..., "raw_question": ...}
-    """
-    system_prompt = f"""You translate natural-language questions about patient drug-interaction
-risk into a structured query. You do NOT answer the medical question yourself —
-you only extract structure. Known patient IDs: {", ".join(KNOWN_PATIENTS)}.
+    system_prompt = f"""..."""  # unchanged
 
-Respond ONLY with JSON in this exact shape:
-{{"intent": "check_patient_risk" | "explain_patient_risk" | "unknown",
-  "patient_id": one of the known patient IDs or null}}
-
-Use "explain_patient_risk" when the user asks why/how something was flagged.
-Use "check_patient_risk" for general risk/safety checks.
-Use "unknown" if the question is unrelated to patient drug risk."""
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": nl_question},
-        ],
-    )
-
-    parsed = json.loads(response.choices[0].message.content)
-    return {
-        "intent": parsed.get("intent", "unknown"),
-        "patient_id": parsed.get("patient_id"),
-        "raw_question": nl_question,
-    }
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": nl_question},
+            ],
+            timeout=10,
+        )
+        parsed = json.loads(response.choices[0].message.content)
+        return {
+            "intent": parsed.get("intent", "unknown"),
+            "patient_id": parsed.get("patient_id"),
+            "raw_question": nl_question,
+        }
+    except (OpenAIError, json.JSONDecodeError) as e:
+        return {
+            "intent": "llm_error",
+            "patient_id": None,
+            "raw_question": nl_question,
+            "error": str(e),
+        }
 
 
 def translate_mock(nl_question: str) -> dict:

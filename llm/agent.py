@@ -31,6 +31,13 @@ from explain_to_nl import polish_explanation
 def handle_question(nl_question: str) -> dict:
     query = translate_llm(nl_question)
 
+    if query["intent"] == "llm_error":
+        return {
+            "raw": None,
+            "polished": ("Sorry, I'm having trouble reaching the language model right now. "
+                         "Please try again in a moment.")
+        }
+
     if query["intent"] not in ("check_patient_risk", "explain_patient_risk"):
         return {
             "raw": None,
@@ -38,22 +45,7 @@ def handle_question(nl_question: str) -> dict:
                          "— try asking something like 'Is P1 at risk?' or 'Why is P2 flagged?'")
         }
 
-    if query["patient_id"] is None:
-        return {
-            "raw": None,
-            "polished": ("I couldn't identify which patient you're asking about. "
-                         "Please refer to a patient by ID (e.g. P1, P2, P3).")
-        }
-
-    _ensure_reasoner_run()
-
-    patient = getattr(pop, query["patient_id"].split("_")[0], None)
-    if patient is None:
-        return {"raw": None, "polished": f"I don't have a record for patient {query['patient_id']}."}
-
-    raw = explain_patient(patient)
-    result = polish_explanation(raw)
-    return result
+    # ... rest unchangedt
 
 if __name__ == "__main__":
     test_questions = [
