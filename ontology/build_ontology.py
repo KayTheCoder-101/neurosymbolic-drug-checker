@@ -51,6 +51,7 @@ with onto:
     class ageYears(Patient >> int): pass
     class isPregnant(Patient >> bool): pass
     class creatinineClearance(Patient >> float): pass
+    class hasSeverityLabel(Drug >> str): pass
 
     class SerotoninSyndromeRiskPatient(Patient):
         equivalent_to = [

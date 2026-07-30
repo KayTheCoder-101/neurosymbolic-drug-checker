@@ -19,7 +19,19 @@ KNOWN_PATIENTS = ["P1_SerotoninRisk", "P2_CYP3A4Risk", "P3_BleedingRisk", "P5_Sa
 from openai import OpenAIError
 
 def translate_llm(nl_question: str) -> dict:
-    system_prompt = f"""..."""  # unchanged
+    system_prompt = f"""You translate natural-language questions about patient drug-interaction
+risk into a structured query. Respond in JSON format only.
+
+You do NOT answer the medical question yourself — you only extract structure.
+Known patient IDs: {", ".join(KNOWN_PATIENTS)}.
+
+Respond ONLY with JSON in this exact shape:
+{{"intent": "check_patient_risk" | "explain_patient_risk" | "unknown",
+  "patient_id": one of the known patient IDs or null}}
+
+Use "explain_patient_risk" when the user asks why/how something was flagged.
+Use "check_patient_risk" for general risk/safety checks.
+Use "unknown" if the question is unrelated to patient drug risk."""
 
     try:
         response = client.chat.completions.create(

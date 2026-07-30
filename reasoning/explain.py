@@ -7,7 +7,14 @@ import populate_individuals as pop
 
 onto = pop.onto
 bo = pop.bo
-
+SEVERITY_MAP = {
+    "SerotoninSyndromeRiskPatient": "Major",
+    "HypertensiveCrisisRiskPatient": "Contraindicated",
+    "BleedingRiskPatient": "Major",
+    "QTProlongationRiskPatient": "Major",
+    "CYP3A4ToxicityRiskPatient": "Moderate",
+    "CNSDepressionRiskPatient": "Moderate",
+}
 
 def explain_serotonin_syndrome(patient):
     maois = [d for d in patient.takesMedication if bo.MAOI in d.is_a]
@@ -57,19 +64,32 @@ EXPLAINERS = {
 def explain_patient(patient):
     inferred_classes = [c.name for c in patient.is_a if c.name != "Patient"]
     if not inferred_classes:
-        return f"{patient.name}: no risk classes inferred — regimen appears safe under current axioms."
+        return {
+            "explanation": f"{patient.name}: no risk classes inferred — regimen appears safe under current axioms.",
+            "severity": "None",
+        }
 
     explanations = []
+    severities = []
     for cls_name in inferred_classes:
         explainer = EXPLAINERS.get(cls_name)
+        severity = SEVERITY_MAP.get(cls_name, "Unknown")
+        severities.append(severity)
         if explainer:
             result = explainer(patient)
             if result:
                 explanations.append(result)
         else:
             explanations.append(f"{patient.name} classified as {cls_name} (explainer not yet implemented).")
-    return "\n".join(explanations)
 
+    highest_severity = "Contraindicated" if "Contraindicated" in severities else (
+        "Major" if "Major" in severities else (
+        "Moderate" if "Moderate" in severities else "Minor"))
+
+    return {
+        "explanation": "\n".join(explanations),
+        "severity": highest_severity,
+    }
 
 if __name__ == "__main__":
     try:
