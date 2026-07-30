@@ -46,8 +46,12 @@ class ReasoningService:
             if patient is None:
                 return {"error": f"Unknown patient ID: {patient_short_id}"}
             inferred = [c.name for c in patient.is_a if c.name != "Patient"]
-            explanation = self._explain_patient(patient)
-            return {"inferred_classes": inferred, "explanation": explanation}
+            explain_result = self._explain_patient(patient)
+            return {
+                "inferred_classes": inferred,
+                "explanation": explain_result["explanation"],
+                "severity": explain_result["severity"],
+            }
 
     def check_custom_regimen(self, drug_names: list[str]) -> dict:
         """
@@ -69,11 +73,16 @@ class ReasoningService:
             try:
                 self._sync()
                 inferred = [c.name for c in patient.is_a if c.name != "Patient"]
-                explanation = self._explain_patient(patient)
-                result = {"inferred_classes": inferred, "explanation": explanation,
-                          "consistent": True}
+                explain_result = self._explain_patient(patient)
+                result = {
+                    "inferred_classes": inferred,
+                    "explanation": explain_result["explanation"],
+                    "severity": explain_result["severity"],
+                    "consistent": True,
+                }
             except OwlReadyInconsistentOntologyError:
                 result = {"inferred_classes": [], "explanation": None,
+                          "severity": "Contraindicated",
                           "consistent": False,
                           "message": "This combination creates a logically impossible "
                                      "state under the ontology's axioms (e.g. an absolute "
