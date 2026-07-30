@@ -63,8 +63,8 @@ class QuestionResponse(BaseModel):
     question: str
     raw_explanation: str | None
     polished_explanation: str
+    severity: str
     timestamp: str
-
 
 class RegimenRequest(BaseModel):
     drugs: list[str] = Field(..., min_length=1, max_length=10,
@@ -76,6 +76,7 @@ class RegimenResponse(BaseModel):
     consistent: bool
     inferred_classes: list[str]
     explanation: str | None
+    severity: str
     message: str | None = None
     timestamp: str
 
@@ -111,6 +112,7 @@ def ask(request: Request, body: QuestionRequest):
         question=body.question,
         raw_explanation=result["raw"],
         polished_explanation=result["polished"],
+        severity=result["severity"],
         timestamp=datetime.utcnow().isoformat(),
     )
 
@@ -133,6 +135,7 @@ def check_regimen(request: Request, body: RegimenRequest):
         consistent=result.get("consistent", True),
         inferred_classes=result.get("inferred_classes", []),
         explanation=result.get("explanation"),
+        severity=result.get("severity", "Unknown"),
         message=result.get("message"),
         timestamp=datetime.utcnow().isoformat(),
     )
