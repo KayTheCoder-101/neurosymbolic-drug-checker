@@ -67,9 +67,8 @@ class QuestionResponse(BaseModel):
     timestamp: str
 
 class RegimenRequest(BaseModel):
-    drugs: list[str] = Field(..., min_length=1, max_length=10,
-                              description="List of drug names, e.g. ['Phenelzine', 'Sertraline']")
-
+    drugs: list[str] = Field(..., min_length=1, max_length=10)
+    pregnant: bool = False
 
 class RegimenResponse(BaseModel):
     drugs: list[str]
@@ -120,9 +119,10 @@ def ask(request: Request, body: QuestionRequest):
 @app.post("/check-regimen", response_model=RegimenResponse)
 @limiter.limit("15/minute")
 def check_regimen(request: Request, body: RegimenRequest):
-    logger.info(f"Checking custom regimen: {body.drugs}")
+    logger.info(f"Checking custom regimen: {body.drugs} (pregnant={body.pregnant})")
     service = get_reasoning_service()
-    result = service.check_custom_regimen(body.drugs)
+    result = service.check_custom_regimen(body.drugs, pregnant=body.pregnant)
+    ...  # rest unchanged
 
     if "error" in result:
         raise HTTPException(status_code=400, detail=result)

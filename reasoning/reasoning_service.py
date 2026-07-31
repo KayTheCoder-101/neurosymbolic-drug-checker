@@ -53,12 +53,7 @@ class ReasoningService:
                 "severity": explain_result["severity"],
             }
 
-    def check_custom_regimen(self, drug_names: list[str]) -> dict:
-        """
-        Creates a TEMPORARY patient with the given drugs, reasons over it,
-        captures the result, then destroys the individual so repeated demo
-        use doesn't grow the ontology unboundedly.
-        """
+    def check_custom_regimen(self, drug_names: list[str], pregnant: bool = False) -> dict:
         with self._lock:
             unknown = [name for name in drug_names if self.get_drug_by_name(name) is None]
             if unknown:
@@ -67,7 +62,11 @@ class ReasoningService:
 
             temp_name = f"TempPatient_{uuid.uuid4().hex[:8]}"
             with self.onto:
-                patient = self.bo.Patient(temp_name)
+                if pregnant:
+                    patient = self.bo.PregnantPatient(temp_name)
+                    patient.isPregnant = [True]
+                else:
+                    patient = self.bo.Patient(temp_name)
                 patient.takesMedication = [self.get_drug_by_name(n) for n in drug_names]
 
             try:
