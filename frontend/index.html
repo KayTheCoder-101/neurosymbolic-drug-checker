@@ -692,15 +692,22 @@ function renderLoading(target) {
   target.stamp.innerHTML = '';
   target.topbar.className = 'console-topbar';
   target.body.innerHTML = '<div class="loading"><span class="spinner"></span> Reasoning over the ontology…</div>';
+
+  if (target.wakeupTimer) clearTimeout(target.wakeupTimer);
+  target.wakeupTimer = setTimeout(() => {
+    target.body.innerHTML = '<div class="loading"><span class="spinner"></span> Waking up the backend — free-tier hosting sleeps after inactivity, this can take up to a minute on the first request…</div>';
+  }, 4000);
 }
 
 function renderError(target, msg) {
+  if (target.wakeupTimer) clearTimeout(target.wakeupTimer);
   target.stamp.innerHTML = '';
   target.topbar.className = 'console-topbar';
   target.body.innerHTML = '<p class="error-text">' + msg + '</p>';
 }
 
 function renderResult(target, r) {
+  if (target.wakeupTimer) clearTimeout(target.wakeupTimer);
   target.lastResult = r;
   const stampLabel = r.consistent === false ? 'Contraindicated' : (r.severity || 'Unknown');
   target.stamp.innerHTML = '<span class="stamp ' + stampLabel + '">' + stampLabel + '</span>';
