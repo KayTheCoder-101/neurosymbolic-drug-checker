@@ -40,75 +40,57 @@ layer entirely.
 
 ## Architecture
 
-```
-FRONTEND (Netlify, static)
-  Regimen picker, free-text Ask box, live "Proof Console"
-        |
-        |  HTTPS / JSON
-        v
-FASTAPI BACKEND (Render, Docker)
-  GET  /drugs
-  POST /check-regimen   { drugs: [], pregnant }
-  POST /ask              { question }
-  Rate-limited (slowapi). CORS locked to the frontend origin.
-        |
-        |-----------------------------------------|
-        v                                          v
-REASONING SERVICE (warm)                  LLM LAYER (OpenAI)
-  Owlready2 singleton,                      translate_llm:
-  loaded once at startup                      NL question -> drug names,
-        |                                      category resolution
-        |  uses                                (MAOI -> Phenelzine, etc.),
-        v                                      pregnancy detection
-  OWL ONTOLOGY
-    12 drug categories                       polish_explanation:
-    6 risk classes as DL restrictions          rephrases the reasoner's
-    1 SWRL property-chain rule                 own explanation only,
-      (CYP3A4 toxicity)                        never adds a new claim
-    1 unsatisfiable class
-      (pregnancy contraindication)           Both calls have a tested
-        |                                    graceful fallback if OpenAI
-        v                                    errors or rate-limits.
-  HermiT (via Owlready2)
-    subsumption classification
-    consistency checking
-        |
-        v
-  Explanation layer
-    inferred class -> exact drugs,
-    categories, and axiom that
-    produced it
+```mermaid
+flowchart TD
+    FE["Frontend — Netlify<br/>Regimen picker · Ask box · Proof Console"]
+    API["FastAPI Backend — Render (Docker)<br/>rate-limited · CORS-locked"]
+    LLM1["OpenAI — extract<br/>NL question → drugs, categories, pregnancy"]
+    LLM2["OpenAI — polish<br/>rephrase only, no new claims"]
+    RS["Reasoning Service<br/>warm Owlready2 singleton"]
+    ONTO["OWL Ontology<br/>12 categories · 6 risk classes<br/>1 SWRL rule · 1 unsatisfiable class"]
+    HERMIT["HermiT Reasoner<br/>subsumption + consistency check"]
+    EXPL["Explanation Layer<br/>inferred class → exact axiom trace"]
+
+    FE -- "HTTPS / JSON" --> API
+    API -- "POST /ask" --> LLM1
+    API -- "POST /check-regimen (bypasses LLM)" --> RS
+    LLM1 -- "extracted drugs + intent" --> RS
+    RS --> ONTO --> HERMIT --> EXPL
+    EXPL -- "raw explanation" --> LLM2
+    LLM2 -- "polished text" --> API
+    EXPL -- "raw explanation" --> API
+    API --> FE
 ```
 
 ### Request flow for a free-text question (`/ask`)
 
-```
-"Is Warfarin safe during pregnancy?"
-        |
-        v
-[1] OpenAI extracts structure:
-      { drugs: ["Warfarin"], pregnant: true, intent: "check_risk" }
-        |
-        v
-[2] Reasoning service asserts a temporary patient
-    (pregnant = true, takes Warfarin), then runs HermiT.
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant API as FastAPI
+    participant Extract as OpenAI (extract)
+    participant RS as Reasoning Service
+    participant HermiT
+    participant Polish as OpenAI (polish)
 
-      consistent   -> inferred risk class + severity
-      inconsistent -> proven logically impossible
-                       (pregnancy contraindication)
-        |
-        v
-[3] OpenAI rephrases the reasoner's own text for
-    readability. No new claims are permitted.
-        |
-        v
-Response: { raw_explanation, polished_explanation,
-            severity, consistent }
+    Browser->>API: POST /ask { question }
+    API->>Extract: "Is Warfarin safe during pregnancy?"
+    Extract-->>API: { drugs: ["Warfarin"], pregnant: true }
+    API->>RS: check_custom_regimen(drugs, pregnant)
+    RS->>HermiT: classify / check consistency
+    alt consistent
+        HermiT-->>RS: inferred risk class + severity
+    else inconsistent
+        HermiT-->>RS: proven logically impossible
+    end
+    RS-->>API: raw explanation
+    API->>Polish: rephrase (no new claims allowed)
+    Polish-->>API: polished explanation
+    API-->>Browser: { raw, polished, severity, consistent }
 ```
 
-`/check-regimen` skips steps [1] and [3] entirely. The frontend's drug picker
+`/check-regimen` skips both OpenAI calls entirely — the frontend's drug picker
 sends structured input directly, so that path never touches the LLM at all.
-
 ---
 
 ## The six layers
