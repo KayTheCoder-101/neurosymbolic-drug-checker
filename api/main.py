@@ -49,7 +49,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Tighten allow_origins to your actual deployed frontend URL before going live.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://your-actual-netlify-url.netlify.app"],
+    allow_origins=["https://lustrous-pika-881461.netlify.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
