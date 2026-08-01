@@ -365,8 +365,8 @@
 
 <owl:NamedIndividual rdf:about="#P1_SerotoninRisk">
   <rdf:type rdf:resource="#Patient"/>
-  <takesMedication rdf:resource="#Phenelzine"/>
   <takesMedication rdf:resource="#Sertraline"/>
+  <takesMedication rdf:resource="#Phenelzine"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#P2_CYP3A4Risk">
@@ -377,8 +377,8 @@
 
 <owl:NamedIndividual rdf:about="#P3_BleedingRisk">
   <rdf:type rdf:resource="#Patient"/>
-  <takesMedication rdf:resource="#Aspirin"/>
   <takesMedication rdf:resource="#Warfarin"/>
+  <takesMedication rdf:resource="#Aspirin"/>
 </owl:NamedIndividual>
 
 <owl:NamedIndividual rdf:about="#P5_Safe">

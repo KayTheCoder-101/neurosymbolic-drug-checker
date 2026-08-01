@@ -44,17 +44,22 @@ this mapping:
 - Sympathomimetic -> Pseudoephedrine
 - Triptan -> Sumatriptan
 
+Also detect whether the question describes the patient as pregnant or asks about
+pregnancy specifically (e.g. "during pregnancy", "while pregnant", "if I'm expecting").
+
 Identify which of the known drugs are mentioned or implied by category, using their
 exact spelling from the known drugs list above. Also classify intent.
 
 Respond ONLY with JSON in this exact shape:
 {{"intent": "check_risk" | "explain_risk" | "unknown",
-  "drug_names": ["ExactDrugName1", "ExactDrugName2", ...]}}
+  "drug_names": ["ExactDrugName1", "ExactDrugName2", ...],
+  "pregnant": true | false}}
 
 Use "explain_risk" when the user asks why/how something is risky.
 Use "check_risk" for general risk/safety questions.
 Use "unknown" if the question doesn't mention any known drug or category, or isn't about drug risk.
-If no known drug or category is mentioned, drug_names should be an empty list."""
+If no known drug or category is mentioned, drug_names should be an empty list.
+Default "pregnant" to false unless pregnancy is explicitly mentioned."""
 
     try:
         response = client.chat.completions.create(
@@ -70,6 +75,7 @@ If no known drug or category is mentioned, drug_names should be an empty list.""
         return {
             "intent": parsed.get("intent", "unknown"),
             "drug_names": parsed.get("drug_names", []),
+            "pregnant": parsed.get("pregnant", False),
             "raw_question": nl_question,
         }
     except (OpenAIError, json.JSONDecodeError) as e:
@@ -83,11 +89,8 @@ If no known drug or category is mentioned, drug_names should be an empty list.""
 
 if __name__ == "__main__":
     test_questions = [
-        "Is Warfarin and Aspirin risky together?",
         "Why is Ketoconazole with Simvastatin dangerous?",
-        "Is Diazepam safe on its own?",
-        "What's the weather today?",
-        "Can I take an MAOI with an SSRI?",
-    ]
+        "Is Warfarin safe during pregnancy?",
+     ]
     for q in test_questions:
         print(q, "->", translate_llm(q))

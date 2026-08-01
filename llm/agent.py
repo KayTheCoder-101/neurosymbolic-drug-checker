@@ -43,7 +43,7 @@ def handle_question(nl_question: str) -> dict:
         }
 
     service = get_reasoning_service()
-    result = service.check_custom_regimen(drug_names)
+    result = service.check_custom_regimen(drug_names, pregnant=query.get("pregnant", False)) 
 
     if "error" in result:
         return {
@@ -73,10 +73,7 @@ def handle_question(nl_question: str) -> dict:
 if __name__ == "__main__":
     test_questions = [
         "Is Warfarin and Aspirin risky together?",
-        "Why is Ketoconazole with Simvastatin dangerous?",
-        "Is Diazepam safe on its own?",
-        "What's the weather today?",
-        "Tell me about Xanax and alcohol",
+        "Is Warfarin safe during pregnancy?",
     ]
     for q in test_questions:
         result = handle_question(q)
