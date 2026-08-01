@@ -91,7 +91,6 @@ sequenceDiagram
 
 `/check-regimen` skips both OpenAI calls entirely — the frontend's drug picker
 sends structured input directly, so that path never touches the LLM at all.
----
 
 ## The six layers
 
